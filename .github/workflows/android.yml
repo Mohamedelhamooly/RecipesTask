@@ -1,0 +1,156 @@
+name: Android Release
+
+# Controls when the workflow will run
+on:
+
+  # Triggers the workflow on push or pull request events for the "release" branch;
+  # you can change it according to your requirement
+
+  push:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab from your GitHub repo
+  # (a workflow run is made up of one or more jobs that can run sequentially or in parallel)
+
+  workflow_dispatch:
+
+# currently Contains one job that do all process from build to deploy
+jobs:
+  build:
+    # to only merge if there is a merge action
+    #    if: github.event.pull_request.merged == true
+    # Contains the type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+
+    # Uses steps to represent a sequence of tasks that will be executed as part of job
+    steps:
+      # Readies your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4.1.1
+
+      # Sets up Java so your job can use it for the Flutter app build
+      - uses: actions/setup-java@v4.2.1
+        with:
+          distribution: 'adopt'
+          java-version: "11"
+          # providing Gradle to be cached with respect to the Java SDK
+          cache: 'gradle'
+      
+      # Sets up Flutter using the subosito Flutter workflow
+      - uses: subosito/flutter-action@v2.13.0
+        with:
+          # Adjusts to the Flutter version you are working with
+          flutter-version: "3.19.3"
+          channel: 'stable'
+          # enabling caching for the Flutter SDK
+          cache: true
+
+      # caching build  - gradle  - pub-cache
+      - name: Cache
+        uses: actions/cache@v4.0.1
+        with:
+          path: |
+            build/
+            android/.gradle/
+          key: ${{ runner.os }}-build_and_android-${{ hashFiles('*/.gradle*', 'pubspec.lock') }}
+
+
+
+      # Runs a single command using the runner’s shell
+      - name: Get dependencies
+        run: flutter pub get
+
+#      - name: Run Unit Tests
+#        run: flutter test
+
+      # Read the updated version from version1.txt file
+      - name: Read release version
+        id: read-version
+        uses: NiklasLehnfeld/flutter-version-number-action@v1
+        with:
+          file-path: pubspec.yaml
+
+
+      - name: Start release build APK
+        run: flutter build apk
+
+#      - name: Run E2E Tests
+#        run: flutter drive --target=integration_test/app_test.dart
+
+      # --- creating github apk-release ---
+      - name: Show Me the secret
+        run: echo " ${{ secrets.GITHUBRELEASETOKEN }}"
+
+      - name: Create apk-release in GitHub
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          artifacts: "build/app/outputs/flutter-apk/app-release.apk"
+          token: ${{ secrets.GITHUBRELEASETOKEN }}
+          tag: apk_Release_${{ steps.read-version.outputs.version-number }}
+          allowUpdates: true
+#      - name: Send mail
+#        uses: dawidd6/action-send-mail@v3
+#        with:
+#          server_address: smtp.gmail.com
+#          server_port: 465
+#          username: Melhamoouly@gmail.com
+#          password: ${{SECRETS.GMAILPASS}}
+#          subject: Opportunity for you
+#          to: mohamedelhamooly@gmail.com
+#          from: GitHub Campus Expert
+##          html_body: file://temp.html
+#          secure: true
+#          ignore_cert: true
+#          convert_markdown: true
+#          priority: low
+#      - name: Send E-Mail (SMTP)
+#        uses: hilarion5/send-mail@v1
+#        with:
+#          smtp-server: smtp.gmail.com
+#          smtp-port: 465
+#          smtp-secure: true
+#          from-email: Melhamoouly@gmail.com
+#          to-email: mohamedelhamooly@gmail.com
+#          username: Melhamoouly@gmail.com
+#          password: ${{ secrets.GMAILPASS}}
+#          subject: Test Email
+#          body: Build Apk  completed successfully!
+#          html: |
+#            <h1>This is a test email</h1>
+#            <p>Test Paragraph</p>
+
+#          name: Send mail
+#          uses: dawidd6/action-send-mail@v3
+#          with:
+#            # Specify connection via URL (replaces server_address, server_port, secure,
+#            # username and password)
+#            #
+#            # Format:
+#            #
+#            #  * smtp://user:password@server:port
+#            #  * smtp+starttls://user:password@server:port
+#          connection_url: ${{secrets.MAIL_CONNECTION}}
+#      # Required mail server address if not connection_url:
+#          server_address: imap.gmail.com
+#          # Server port, default 25:
+#          server_port: 465
+#          # Optional whether this connection use TLS (default is true if server_port is 465)
+#          secure: true
+#          # Optional (recommended) mail server username:
+#          username: mohamedelhamooly@gmail.com
+#          # Optional (recommended) mail server password:
+#          password: ${{secrets.GMAILPASS}}
+#          # Required mail subject:
+#          subject: Github Actions job result
+#          # Required recipients' addresses:
+#          to: melhamoly@gmail.com
+#          # Required sender full name (address can be skipped):
+#          from: Luke Skywalker # <user@example.com>
+#          # Optional plain body:
+#          body: Build job of ${{github.repository}} completed successfully!
+#          # Optional HTML body read from file:
+#          html_body: file://README.html
+#          # Optional attachments:
+#          attachments: attachments.zip,git.diff,./dist/static/*.js
+#          # Optional priority: 'high', 'normal' (default) or 'low'
+#          priority: low
