@@ -4,9 +4,9 @@
 # Recipes Task is a Flutter application that allows users to explore and discover various recipes. It provides features such as browsing recipes, marking favorites, and more.
 
 # Features
-
-- You should to login to Browse the Recipes
+- Login
 - Browse Recipes: Users can browse through a collection of recipes with details such as ingredients, cooking instructions, and images.
+- Pull to Refresh
 - Favorite Recipes: Users can mark recipes as favorites for easy access later.
 - can explore recipes details 
 - State Management: The app uses the Bloc pattern for efficient state management, ensuring a smooth and responsive user experience.
